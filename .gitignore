@@ -7,6 +7,7 @@
 *.dll
 *.so
 *.dylib
+example/readmeta/readmeta
 
 # Test binary, built with `go test -c`
 *.test
