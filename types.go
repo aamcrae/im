@@ -23,6 +23,14 @@ const (
 	TypeXmp
 )
 
+type Rational struct {
+	Num, Denom uint32
+}
+
+type SRational struct {
+	Num, Denom int32
+}
+
 type Value struct {
 	Type  Type
 	Count int // Count of items

@@ -74,7 +74,7 @@ func (t Type) read(count int, order binary.ByteOrder, rd io.Reader) (any, error)
 	case TypeLong:
 		return readData[uint32](count, order, rd)
 	case TypeRational:
-		return readRational[uint32](count, order, rd)
+		return readRational[Rational](count, order, rd)
 	case TypeSByte:
 		return readData[int8](count, order, rd)
 	case TypeUndefine:
@@ -84,7 +84,7 @@ func (t Type) read(count int, order binary.ByteOrder, rd io.Reader) (any, error)
 	case TypeSLong:
 		return readData[int32](count, order, rd)
 	case TypeSRational:
-		return readRational[int32](count, order, rd)
+		return readRational[SRational](count, order, rd)
 	case TypeFloat:
 		return readData[float32](count, order, rd)
 	case TypeDouble:
@@ -119,29 +119,46 @@ func readString(count int, order binary.ByteOrder, rd io.Reader) (string, error)
 	if v, err := readData[byte](count, order, rd); err != nil {
 		return "", err
 	} else {
+		// Convert to byte slice if necessary
+		var b []byte
+		if count == 1 {
+			b = []byte{v.(byte)}
+		} else {
+			b = v.([]byte)
+		}
 		// Trip trailing nulls from the string
-		return string(bytes.TrimRight(v, "\000")), nil
+		return string(bytes.TrimRight(b, "\000")), nil
 	}
 }
 
 // readData reads a list of one or more of these types
-func readData[T byte | int8 | int16 | int32 | uint16 | uint32 | float32 | float64](count int, order binary.ByteOrder, rd io.Reader) ([]T, error) {
+func readData[T byte | int8 | int16 | int32 | uint16 | uint32 | float32 | float64](count int, order binary.ByteOrder, rd io.Reader) (any, error) {
 	entry := make([]T, count)
-	err := binary.Read(rd, order, &entry)
-	return entry, err
+	if err := binary.Read(rd, order, &entry); err != nil {
+		return nil, err
+	}
+	if count == 1 {
+		return entry[0], nil
+	} else {
+		return entry, nil
+	}
 }
 
 // readRational reads a list of one or more rational types (2 32 bit values used as
 // fractional numerator and denominator).
-func readRational[T uint32 | int32](count int, order binary.ByteOrder, rd io.Reader) ([][]T, error) {
-	var sl [][]T
+func readRational[T Rational | SRational](count int, order binary.ByteOrder, rd io.Reader) (any, error) {
+	var sl []T
 	for i := 0; i < count; i++ {
-		entry := make([]T, 2)
+		var entry T
 		err := binary.Read(rd, order, &entry)
 		if err != nil {
 			return sl, err
 		}
 		sl = append(sl, entry)
 	}
-	return sl, nil
+	if count == 1 {
+		return sl[0], nil
+	} else {
+		return sl, nil
+	}
 }
